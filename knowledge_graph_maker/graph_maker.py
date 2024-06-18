@@ -31,6 +31,7 @@ class GraphMaker:
     _llm_client: LLMClient
     _model: str
     _verbose: bool
+    _language: str
 
     def __init__(
         self,
@@ -39,10 +40,12 @@ class GraphMaker:
             model="mixtral-8x7b-32768", temperature=0.2, top_p=1
         ),
         verbose: bool = False,
+        language: str = "english",
     ):
         self._ontology = ontology
         self._llm_client = llm_client
         self._verbose = verbose
+        self._language = language
         if self._verbose:
             verbose_logger.setLevel("INFO")
         else:
@@ -52,24 +55,45 @@ class GraphMaker:
         return f"input text: ```\n{text}\n```"
 
     def system_message(self) -> str:
-        return (
-            "You are an expert at creating Knowledge Graphs. "
-            "Consider the following ontology. \n"
-            f"{self._ontology} \n"
-            "The user will provide you with an input text delimited by ```. "
-            "Extract all the entities and relationships from the user-provided text as per the given ontology. Do not use any previous knowledge about the context."
-            "Remember there can be multiple direct (explicit) or implied relationships between the same pair of nodes. "
-            "Be consistent with the given ontology. Use ONLY the labels and relationships mentioned in the ontology. "
-            "Format your output as a json with the following schema. \n"
-            "[\n"
-            "   {\n"
-            '       node_1: Required, an entity object with attributes: {"label": "as per the ontology", "name": "Name of the entity"},\n'
-            '       node_2: Required, an entity object with attributes: {"label": "as per the ontology", "name": "Name of the entity"},\n'
-            "       relationship: Describe the relationship between node_1 and node_2 as per the context, in a few sentences.\n"
-            "   },\n"
-            "]\n"
-            "Do not add any other comment before or after the json. Respond ONLY with a well formed json that can be directly read by a program."
-        )
+        if self._language == "french":
+            return (
+                "Vous êtes un expert en création de graphes de connaissances. "
+                "Considérez l'ontologie suivante. \n"
+                f"{self._ontology} \n"
+                "L'utilisateur vous fournira un texte d'entrée délimité par ```. "
+                "Extrayez toutes les entités et relations du texte fourni par l'utilisateur conformément à l'ontologie donnée. "
+                "N'utilisez aucune connaissance préalable sur le contexte. "
+                "Rappelez-vous qu'il peut y avoir plusieurs relations directes (explicites) ou implicites entre les mêmes paires de nœuds. "
+                "Soyez cohérent avec l'ontologie donnée. Utilisez UNIQUEMENT les étiquettes et les relations mentionnées dans l'ontologie. "
+                "Formatez votre sortie en json avec le schéma suivant. \n"
+                "[\n"
+                "   {\n"
+                '       node_1: Obligatoire, un objet entité avec les attributs : {"label": "selon l\'ontologie", "name": "Nom de l\'entité"},\n'
+                '       node_2: Obligatoire, un objet entité avec les attributs : {"label": "selon l\'ontologie", "name": "Nom de l\'entité"},\n'
+                "       relationship: Décrivez la relation entre node_1 et node_2 selon le contexte, en un ou deux mots seulement.\n"
+                "   },\n"
+                "]\n"
+                "Ne pas ajouter d'autres commentaires avant ou après le json. Répondez UNIQUEMENT avec un json bien formé pouvant être directement lu par un programme."
+            )
+        else:
+            return (
+                "You are an expert at creating Knowledge Graphs. "
+                "Consider the following ontology. \n"
+                f"{self._ontology} \n"
+                "The user will provide you with an input text delimited by ```. "
+                "Extract all the entities and relationships from the user-provided text as per the given ontology. Do not use any previous knowledge about the context."
+                "Remember there can be multiple direct (explicit) or implied relationships between the same pair of nodes. "
+                "Be consistent with the given ontology. Use ONLY the labels and relationships mentioned in the ontology. "
+                "Format your output as a json with the following schema. \n"
+                "[\n"
+                "   {\n"
+                '       node_1: Required, an entity object with attributes: {"label": "as per the ontology", "name": "Name of the entity"},\n'
+                '       node_2: Required, an entity object with attributes: {"label": "as per the ontology", "name": "Name of the entity"},\n'
+                "       relationship: Describe the relationship between node_1 and node_2 as per the context, in one or two words only.\n"
+                "   },\n"
+                "]\n"
+                "Do not add any other comment before or after the json. Respond ONLY with a well formed json that can be directly read by a program."
+            )
 
     def generate(self, text: str) -> str:
         # verbose_logger.info(f"SYSTEM_PROMPT: {self.system_message()}")
@@ -86,7 +110,7 @@ class GraphMaker:
             green_logger.info(f"JSON Parsing Successful!")
             return parsed_json
         except json.JSONDecodeError as e:
-            json_parse_logger.info(f"JSON Parsing failed with error: { e.msg}")
+            json_parse_logger.info(f"JSON Parsing failed with error: {e.msg}")
             verbose_logger.info(f"FAULTY JSON: {text}")
             return None
 
